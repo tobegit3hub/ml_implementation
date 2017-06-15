@@ -16,4 +16,6 @@ These are the implementation of machine learning algorithms **from scratch**.
   * [x] [Distributed logistic regression](./logistic_regression/distributed_logistic_regression.py)
 * [x] [Neural network](./neural_network/)
   * [x] [Neural network](./neural_network/neural_network.py)
-* [ ] [SVM](./svm/)
+* [x] [SVM](./svm/)
+  * [x] [SVM](./svm/svm.py)
+* [ ] [Random forest](./random_forest/)
