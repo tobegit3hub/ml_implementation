@@ -1,5 +1,10 @@
 #!/usr/bin/env python
 
+def hinge(x):
+  if 1 - x > 0:
+    return 1 - x
+  else:
+    0
 
 def main():
   print("Start training")
@@ -13,9 +18,8 @@ def main():
   feature_size = len(dataset[0])
   instance_number = len(dataset)
 
-  epoch_number = 100
-  learning_rate = 0.1
-  lambda_rate = 0.01
+  epoch_number = 1000
+  learning_rate = 0.01
 
   # TODO: [6] which contains bias
   weights = [1.0, 1.0, 1.0, 1.0, 1.0]
@@ -28,6 +32,7 @@ def main():
       instance = dataset[i]
       label = labels[i]
 
+      # Hinge loss
       grad = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
 
       for j in range(feature_size):
@@ -35,9 +40,9 @@ def main():
 
       if 1 - wx * label > 0:
         for j in range(feature_size):
-          grad[j] = lambda_rate * weights[j] - instance[j] * label
+          grad[j] = weights[j] - instance[j] * label
       else:
-        grad[j] = lambda_rate * weights[j]
+        grad[j] = weights[j]
 
       for j in range(feature_size):
         weights[j] -= learning_rate * grad[j]
