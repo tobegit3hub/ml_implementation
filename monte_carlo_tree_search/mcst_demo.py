@@ -211,7 +211,7 @@ def backup(node, reward):
     node = node.parent
 
 
-def monto_carlo_tree_search(root_node):
+def monte_carlo_tree_search(root_node):
   """
   蒙特卡洛树搜索算法，传入一个根节点，返回下一个  
 
@@ -240,7 +240,7 @@ def main():
 
   current_node = init_node
   for i in range(10):
-    current_node = monto_carlo_tree_search(current_node)
+    current_node = monte_carlo_tree_search(current_node)
     print("Tree level: {}".format(i))
 
 
