@@ -8,7 +8,7 @@ import numpy as np
 
 AVAILABLE_CHOICES = [1, -1, 2, -2]
 AVAILABLE_CHOICE_NUMBER = len(AVAILABLE_CHOICES)
-MAX_TURN_INDEX = 10
+MAX_ROUND_NUMBER = 10
 
 
 class State(object):
@@ -20,7 +20,7 @@ class State(object):
 
   def __init__(self):
     self.current_value = 0.0
-    self.current_turn_index = 0
+    self.current_round_index = 0
     self.cumulative_choices = []
 
   def get_current_value(self):
@@ -29,11 +29,11 @@ class State(object):
   def set_current_value(self, value):
     self.current_value = value
 
-  def get_current_turn_index(self):
-    return self.current_turn_index
+  def get_current_round_index(self):
+    return self.current_round_index
 
-  def set_current_turn_index(self, turn):
-    self.current_turn_index = turn
+  def set_current_round_index(self, turn):
+    self.current_round_index = turn
 
   def get_cumulative_choices(self):
     return self.cumulative_choices
@@ -42,7 +42,7 @@ class State(object):
     self.cumulative_choices = choices
 
   def is_terminal(self):
-    if self.current_turn_index == MAX_TURN_INDEX:
+    if self.current_round_index == MAX_ROUND_NUMBER - 1:
       return True
     else:
       return False
@@ -55,7 +55,7 @@ class State(object):
 
     next_state = State()
     next_state.set_current_value(self.current_value + random_choice)
-    next_state.set_current_turn_index(self.current_turn_index + 1)
+    next_state.set_current_round_index(self.current_round_index + 1)
     next_state.set_cumulative_choices(self.cumulative_choices +
                                       [random_choice])
 
@@ -65,6 +65,11 @@ class State(object):
     if hash(self) == hash(other):
       return True
     return False
+
+  def __repr__(self):
+    return "State: {}, value: {}, round: {}, choices: {}".format(
+        hash(self), self.current_value, self.current_round_index,
+        self.cumulative_choices)
 
 
 class Node(object):
@@ -124,6 +129,10 @@ class Node(object):
     sub_node.set_parent(self)
     self.children.append(sub_node)
 
+  def __repr__(self):
+    return "Node: {}, Q/N: {}/{}, state: {}".format(
+        hash(self), self.quality_value, self.visit_times, self.state)
+
 
 def tree_policy(node):
   """
@@ -171,7 +180,9 @@ def expand(node):
   输入一个节点，在该节点上拓展一个新的节点，使用random方法执行Action，返回新增的节点。注意，需要保证新增的节点与其他节点Action不同。
   """
 
-  tried_sub_node_states = [node.get_state() for node in node.get_children()]
+  tried_sub_node_states = [
+      sub_node.get_state() for sub_node in node.get_children()
+  ]
 
   new_state = node.get_state().get_next_state_with_random_choice()
 
@@ -232,7 +243,7 @@ def backup(node, reward):
     node = node.parent
 
 
-def monte_carlo_tree_search(root_node):
+def monte_carlo_tree_search(node):
   """
   实现蒙特卡洛树搜索算法，传入一个根节点，在有限的时间内根据之前已经探索过的树结构expand新节点和更新数据，然后返回只要exploitation最高的子节点。
   
@@ -250,7 +261,7 @@ def monte_carlo_tree_search(root_node):
   for i in range(computation_budget):
 
     # 1. Find the best node to expand
-    expand_node = tree_policy(root_node)
+    expand_node = tree_policy(node)
 
     # 2. Random run to add node and get reward
     reward = default_policy(expand_node)
@@ -259,7 +270,7 @@ def monte_carlo_tree_search(root_node):
     backup(expand_node, reward)
 
   # N. Get the best next node
-  best_next_node = best_child(root_node, False)
+  best_next_node = best_child(node, False)
 
   return best_next_node
 
@@ -273,8 +284,11 @@ def main():
 
   # Set the rounds to play
   for i in range(10):
-    print("Tree level: {}".format(i))
+    print("Play round: {}".format(i))
+    print("Choose node: {}".format(current_node))
     current_node = monte_carlo_tree_search(current_node)
+
+  print("Final node: {}".format(current_node))
 
 
 if __name__ == "__main__":
