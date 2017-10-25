@@ -13,11 +13,9 @@ MAX_TURN_INDEX = 10
 
 class State(object):
   """
-  记录每个搜索树Node的状态信息，包含当前节点，。
-  
-  支持判断当前状态是否达到游戏结束状态。
-  
-  支持从Action集合中取出操作，然后通过S和A得到下一个状态S‘。
+  蒙特卡罗树搜索的游戏状态，记录在某一个Node节点下的状态数据，包含当前的游戏得分、当前的游戏round数、从开始到当前的执行记录。
+
+  需要实现判断当前状态是否达到游戏结束状态，支持从Action集合中随机取出操作。
   """
 
   def __init__(self):
@@ -49,7 +47,7 @@ class State(object):
     else:
       return False
 
-  def reward(self):
+  def compute_reward(self):
     return -abs(1 - self.current_value)
 
   def get_next_state_with_random_choice(self):
@@ -70,17 +68,16 @@ class State(object):
 
 
 class Node(object):
-  def __init__(self):
-    """
-    蒙特卡洛树搜索的Node结构，包含了父节点和直接点等信息，还有用于计算UCB的遍历次数和reward值。
-    
-    """
+  """
+  蒙特卡罗树搜索的树结构的Node，包含了父节点和直接点等信息，还有用于计算UCB的遍历次数和quality值，还有游戏选择这个Node的State。
+  """
 
+  def __init__(self):
     self.parent = None
     self.children = []
 
     self.visit_times = 0
-    self.reward_value = 0.0
+    self.quality_value = 0.0
 
     self.state = None
 
@@ -89,6 +86,9 @@ class Node(object):
 
   def get_state(self):
     return self.state
+
+  def get_parent(self):
+    return self.parent
 
   def set_parent(self, parent):
     self.parent = parent
@@ -105,14 +105,14 @@ class Node(object):
   def visit_times_add_one(self):
     self.visit_times += 1
 
-  def get_reward_value(self):
-    return self.reward_value
+  def get_quality_value(self):
+    return self.quality_value
 
-  def set_reward_value(self, value):
-    self.reward_value = value
+  def set_quality_value(self, value):
+    self.quality_value = value
 
-  def reward_value_add_n(self, n):
-    self.reward_value += n
+  def quality_value_add_n(self, n):
+    self.quality_value += n
 
   def is_all_expand(self):
     if len(self.children) == AVAILABLE_CHOICE_NUMBER:
@@ -127,46 +127,60 @@ class Node(object):
 
 def tree_policy(node):
   """
-  蒙特卡洛树搜索的搜索阶段，从当前节点找到下一个值得探索的节点，基本策略是先找未被探索的，然后找UCB最大的。
+  蒙特卡罗树搜索的Selection和Expansion阶段，传入当前需要开始搜索的节点（例如根节点），根据exploration/exploitation算法返回最好的需要expend的节点，注意如果节点是叶子结点直接返回。
+  
+  基本策略是先找当前未选择过的子节点，如果有多个则随机选。如果都选择过就找权衡过exploration/exploitation的UCB值最大的，如果UCB值相等则随机选。
   """
 
+  # Check if the current node is the leaf node
   while node.get_state().is_terminal() == False:
+
     if node.is_all_expand():
       node = best_child(node, True)
     else:
-      node = expand(node)
+      # Return the new sub node
+      sub_node = expand(node)
+      return sub_node
+
+  # Return the leaf node
   return node
 
 
-def default_policy(state):
+def default_policy(node):
   """
-  已经找到了最下面的子节点，随机执行Action得到新的状态和子节点。
+  蒙特卡罗树搜索的Expansion阶段，输入一个需要expand的节点，随机操作后创建新的节点，返回新增节点的reward。注意输入的节点应该不是子节点，而且是有未执行的Action可以expend的。
+  
+  基本策略是随机选择Action，但这个Action必须是未自行过的，否则就不是expend而是重做了。
   """
 
-  new_state = state
-  while new_state.is_terminal() == False:
-    new_state = state.get_next_state_with_random_choice()
+  # Get the state of the game
+  current_state = node.get_state()
 
-  return new_state.reward()
+  # Run until the game over
+  while current_state.is_terminal() == False:
+
+    # Pick one random action to play and get next state
+    current_state = current_state.get_next_state_with_random_choice()
+
+  final_state_reward = current_state.compute_reward()
+  return final_state_reward
 
 
 def expand(node):
   """
-  在原来节点上拓展一个新的节点并且返回。
+  输入一个节点，在该节点上拓展一个新的节点，使用random方法执行Action，返回新增的节点。注意，需要保证新增的节点与其他节点Action不同。
   """
 
   tried_sub_node_states = [node.get_state() for node in node.get_children()]
 
-  #node.get_state()
-
   new_state = node.get_state().get_next_state_with_random_choice()
 
+  # Check until get the new state which has the different action from others
   while new_state in tried_sub_node_states:
     new_state = node.get_state().get_next_state_with_random_choice()
 
   sub_node = Node()
   sub_node.set_state(new_state)
-
   node.add_child(sub_node)
 
   return sub_node
@@ -174,25 +188,26 @@ def expand(node):
 
 def best_child(node, is_exploration):
   """
-  使用UCB算法，权衡exploration和exploitation后选择得分最高的子节点，如果是预测阶段直接选择当前得分最高的。
+  使用UCB算法，权衡exploration和exploitation后选择得分最高的子节点，注意如果是预测阶段直接选择当前Q值得分最高的。
   """
 
   # TODO: Use the min float value
   best_score = -sys.maxsize
   best_sub_node = None
 
+  # Travel all sub nodes to find the best one
   for sub_node in node.get_children():
 
+    # Ignore exploration for inference
     if is_exploration:
       C = 1 / math.sqrt(2.0)
     else:
       C = 0.0
 
-    # UCB = reward / times + C * sqrt(ln(2 * total_times) / times)
-    left = sub_node.get_reward_value() / sub_node.get_visit_times()
-    right = C * math.sqrt(
-        math.log(2.0 * node.get_visit_times() / sub_node.get_visit_times()))
-    score = left + right
+    # UCB = quality / times + C * sqrt(2 * ln(total_times) / times)
+    left = sub_node.get_quality_value() / sub_node.get_visit_times()
+    right = 2.0 * math.log(node.get_visit_times()) / sub_node.get_visit_times()
+    score = left + C * math.sqrt(right)
 
     if score > best_score:
       best_sub_node = sub_node
@@ -202,46 +217,64 @@ def best_child(node, is_exploration):
 
 def backup(node, reward):
   """
-  将reward反馈到此节点的所有父节点上。  
+  蒙特卡洛树搜索的Backpropagation阶段，输入前面获取需要expend的节点和新执行Action的reward，反馈给expend节点和上游所有节点并更新对应数据。
   """
 
+  # Update util the root node
   while node != None:
+    # Update the visit times
     node.visit_times_add_one()
-    node.reward_value_add_n(reward)
+
+    # Update the quality value
+    node.quality_value_add_n(reward)
+
+    # Change the node to the parent node
     node = node.parent
 
 
 def monte_carlo_tree_search(root_node):
   """
-  蒙特卡洛树搜索算法，传入一个根节点，返回下一个  
-
+  实现蒙特卡洛树搜索算法，传入一个根节点，在有限的时间内根据之前已经探索过的树结构expand新节点和更新数据，然后返回只要exploitation最高的子节点。
+  
+  蒙特卡洛树搜索包含四个步骤，Selection、Expansion、Simulation、Backpropagation。
+  前两步使用tree policy找到值得探索的节点。
+  第三步使用default policy也就是在选中的节点上随机算法选一个子节点并计算reward。
+  最后一步使用backup也就是把reward更新到所有经过的选中节点的节点上。
+  
+  进行预测时，只需要根据Q值选择exploitation最大的节点即可，找到下一个最优的节点。
   """
 
-  computation_budget = 100
+  computation_budget = 1000
 
+  # Run as much as possible under the computation budget
   for i in range(computation_budget):
 
-    last_node = tree_policy(root_node)
-    reward = default_policy(last_node.get_state())
-    backup(last_node, reward)
+    # 1. Find the best node to expand
+    expand_node = tree_policy(root_node)
 
-  best_node = best_child(root_node, False)
+    # 2. Random run to add node and get reward
+    reward = default_policy(expand_node)
 
-  #import ipdb;ipdb.set_trace()
-  return best_node
+    # 3. Update all passing nodes with reward
+    backup(expand_node, reward)
+
+  # N. Get the best next node
+  best_next_node = best_child(root_node, False)
+
+  return best_next_node
 
 
 def main():
-  print("Start mcst demo")
-
+  # Create the initialized state and initialized node
   init_state = State()
   init_node = Node()
   init_node.set_state(init_state)
-
   current_node = init_node
+
+  # Set the rounds to play
   for i in range(10):
-    current_node = monte_carlo_tree_search(current_node)
     print("Tree level: {}".format(i))
+    current_node = monte_carlo_tree_search(current_node)
 
 
 if __name__ == "__main__":
