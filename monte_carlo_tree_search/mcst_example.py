@@ -20,6 +20,7 @@ class State(object):
 
   def __init__(self):
     self.current_value = 0.0
+    # For the first root node, the index is 0 and the game should start from 1
     self.current_round_index = 0
     self.cumulative_choices = []
 
@@ -42,7 +43,8 @@ class State(object):
     self.cumulative_choices = choices
 
   def is_terminal(self):
-    if self.current_round_index == MAX_ROUND_NUMBER - 1:
+    # The round index starts from 1 to max round number
+    if self.current_round_index == MAX_ROUND_NUMBER:
       return True
     else:
       return False
@@ -157,9 +159,9 @@ def tree_policy(node):
 
 def default_policy(node):
   """
-  蒙特卡罗树搜索的Expansion阶段，输入一个需要expand的节点，随机操作后创建新的节点，返回新增节点的reward。注意输入的节点应该不是子节点，而且是有未执行的Action可以expend的。
+  蒙特卡罗树搜索的Simulation阶段，输入一个需要expand的节点，随机操作后创建新的节点，返回新增节点的reward。注意输入的节点应该不是子节点，而且是有未执行的Action可以expend的。
   
-  基本策略是随机选择Action，但这个Action必须是未自行过的，否则就不是expend而是重做了。
+  基本策略是随机选择Action。
   """
 
   # Get the state of the game
@@ -255,7 +257,7 @@ def monte_carlo_tree_search(node):
   进行预测时，只需要根据Q值选择exploitation最大的节点即可，找到下一个最优的节点。
   """
 
-  computation_budget = 1000
+  computation_budget = 2
 
   # Run as much as possible under the computation budget
   for i in range(computation_budget):
@@ -284,11 +286,9 @@ def main():
 
   # Set the rounds to play
   for i in range(10):
-    print("Play round: {}".format(i))
-    print("Choose node: {}".format(current_node))
+    print("Play round: {}".format(i + 1))
     current_node = monte_carlo_tree_search(current_node)
-
-  print("Final node: {}".format(current_node))
+    print("Choose node: {}".format(current_node))
 
 
 if __name__ == "__main__":
