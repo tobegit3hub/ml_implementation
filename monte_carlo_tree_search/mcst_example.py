@@ -139,7 +139,7 @@ class Node(object):
 def tree_policy(node):
   """
   蒙特卡罗树搜索的Selection和Expansion阶段，传入当前需要开始搜索的节点（例如根节点），根据exploration/exploitation算法返回最好的需要expend的节点，注意如果节点是叶子结点直接返回。
-  
+
   基本策略是先找当前未选择过的子节点，如果有多个则随机选。如果都选择过就找权衡过exploration/exploitation的UCB值最大的，如果UCB值相等则随机选。
   """
 
@@ -160,7 +160,7 @@ def tree_policy(node):
 def default_policy(node):
   """
   蒙特卡罗树搜索的Simulation阶段，输入一个需要expand的节点，随机操作后创建新的节点，返回新增节点的reward。注意输入的节点应该不是子节点，而且是有未执行的Action可以expend的。
-  
+
   基本策略是随机选择Action。
   """
 
@@ -224,6 +224,7 @@ def best_child(node, is_exploration):
 
     if score > best_score:
       best_sub_node = sub_node
+      best_score = score
 
   return best_sub_node
 
@@ -248,12 +249,12 @@ def backup(node, reward):
 def monte_carlo_tree_search(node):
   """
   实现蒙特卡洛树搜索算法，传入一个根节点，在有限的时间内根据之前已经探索过的树结构expand新节点和更新数据，然后返回只要exploitation最高的子节点。
-  
+
   蒙特卡洛树搜索包含四个步骤，Selection、Expansion、Simulation、Backpropagation。
   前两步使用tree policy找到值得探索的节点。
   第三步使用default policy也就是在选中的节点上随机算法选一个子节点并计算reward。
   最后一步使用backup也就是把reward更新到所有经过的选中节点的节点上。
-  
+
   进行预测时，只需要根据Q值选择exploitation最大的节点即可，找到下一个最优的节点。
   """
 
