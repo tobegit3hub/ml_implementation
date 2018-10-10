@@ -3,30 +3,25 @@
 import numpy
 
 
-def matrix_factorization(R,
-                         P,
-                         Q,
-                         K,
-                         train_step=1000,
-                         learning_rate=0.01,
-                         regular_beta=0.01):
+def matrix_factorization(R, K=10):
   """
   Args:
     R: the objetive [N, M] matrix, P * Q => R
-    P: the learned [N, K]  matrix
-    Q: the learned [K, M]  matrix    
     K: the internal feature number
-    train_step: the step number to train
-    learning_rate: the learning rate
-    regular_beta: the regularization beta
 
   Return:
     P: the trained P
     Q: the trained Q
   """
 
+  train_step = 1000
+  learning_rate = 0.01
+  regular_beta = 0.01
+
   N = len(R)
   M = len(R[0])
+  P = numpy.random.rand(N, K)
+  Q = numpy.random.rand(K, M)
 
   # Train with specified steps
   for step in xrange(train_step):
@@ -64,12 +59,6 @@ if __name__ == "__main__":
   R = numpy.array(R)
   print("Orgin R: {}".format(R))
 
-  N = len(R)
-  M = len(R[0])
-  K = 2
-  P = numpy.random.rand(N, K)
-  Q = numpy.random.rand(K, M)
-
-  new_P, new_Q = matrix_factorization(R, P, Q, K)
-  new_R = numpy.dot(new_P, new_Q)
-  print("P: {}\nQ: {}\nR: {}".format(new_P, new_Q, new_R))
+  generated_P, generated_Q = matrix_factorization(R, 10)
+  generated_R = numpy.dot(generated_P, generated_Q)
+  print("P: {}\nQ: {}\nR: {}".format(generated_P, generated_Q, generated_R))
