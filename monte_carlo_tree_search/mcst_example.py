@@ -44,10 +44,7 @@ class State(object):
 
   def is_terminal(self):
     # The round index starts from 1 to max round number
-    if self.current_round_index == MAX_ROUND_NUMBER:
-      return True
-    else:
-      return False
+    return self.current_round_index == MAX_ROUND_NUMBER
 
   def compute_reward(self):
     return -abs(1 - self.current_value)
@@ -62,11 +59,6 @@ class State(object):
                                       [random_choice])
 
     return next_state
-
-  def __eq__(self, other):
-    if hash(self) == hash(other):
-      return True
-    return False
 
   def __repr__(self):
     return "State: {}, value: {}, round: {}, choices: {}".format(
@@ -122,10 +114,7 @@ class Node(object):
     self.quality_value += n
 
   def is_all_expand(self):
-    if len(self.children) == AVAILABLE_CHOICE_NUMBER:
-      return True
-    else:
-      return False
+    return len(self.children) == AVAILABLE_CHOICE_NUMBER
 
   def add_child(self, sub_node):
     sub_node.set_parent(self)
